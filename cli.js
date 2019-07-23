@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const fs = require("fs");
 const generateJs = require('./mysql_procedure_generator');
 const simpleGit = require('simple-git/promise')();
@@ -152,3 +153,4 @@ const fileNameIsEqualToProcedureName = (file, path) => {
 }
 
 main();
+exports.readGit = main;
