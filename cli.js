@@ -4,41 +4,56 @@ const generateJs = require('./mysql_procedure_generator');
 const simpleGit = require('simple-git/promise')();
 const chalk = require('chalk');
 const _ = require('lodash');
-var path = require('path');
-var appDir = path.dirname(require.main.filename);
+const path = require('path');
+let appDir = path.dirname(require.main.filename);
+appDir = appDir.substring(0, appDir.lastIndexOf('Express'));
 let promises = [];
 let indexJSON;
 
+const renamePath = (path) => {
+    return (appDir + path).replace(/\\/g,"/");
+}
+const isProcedureFile = (path) => {
+    return(
+        path.substring(path.length - 3, path.length) === 'sql' &&
+        path.substring(path.lastIndexOf('/') - 10, path.lastIndexOf('/')) === 'Procedures'
+    );
+
+}
 async function main() {
     try {
         console.log('Running git analyzer on', appDir);
         promises = [];
-        const originalIndexJSON = JSON.parse(fs.readFileSync('./DB_Parser/proceduresMethods/index.json'));
+        const originalIndexJSON = JSON.parse(fs.readFileSync(renamePath('Express/proceduresMethods/index.json')));
         indexJSON = _.cloneDeep(originalIndexJSON);
         const res = await simpleGit.status();
         console.log('Modified:', res.modified);
         console.log('Deleted:', res.deleted);
-        console.log('created:', res.created);
+        console.log('created:', res.created); 
         console.log('renamed:', res.renamed);
         res.modified.forEach((file) => {
-            if (file.substring(0, 5) === 'MySQL') {
+            file = renamePath(file);
+            if (isProcedureFile(file)) {
                 const name = file.substring(file.lastIndexOf(`/`) + 1);
                 console.log(chalk.black.bgBlue('SQL File: ', name + ' has been modified'));
-                promises.push(writeFile(name, './'+file));
+                promises.push(writeFile(name, file));
             }
         });
         res.deleted.forEach((file) => {
-            if (file.substring(0, 5) === 'MySQL') {
+            file = renamePath(file);
+            if (isProcedureFile(file)) {
                 deleteFile(file);
             }
         });
         res.created.forEach((file) => {
-            if (file.substring(0, 5) === 'MySQL') {
+            file = renamePath(file);
+            if (isProcedureFile(file)) {
                 createFile(file);
             }
         });
         res.renamed.forEach((file) => {
-            if (file.from.substring(0, 5) === 'MySQL') {
+            file = renamePath(file);
+            if (isProcedureFile(file)) {
                 deleteFile(file.from);
                 createFile(file.to);
             }
@@ -46,15 +61,15 @@ async function main() {
         await Promise.all(promises);
         const noChanges = _.isEqual(_.sortBy(originalIndexJSON), _.sortBy(indexJSON));
         if(noChanges){
-            console.log(chalk.white.bgBlue.bold(`No changes made to ./DB_Parser/proceduresMethods/index.json`));
+            console.log(chalk.white.bgBlue.bold(`No changes made to ./proceduresMethods/index.json`));
         }
         else{   
             await Promise.all([
                 new Promise((resolve, reject) => {
-                    fs.writeFile(`./DB_Parser/proceduresMethods/index.json`, JSON.stringify(indexJSON), (err) => {
+                    fs.writeFile(`./proceduresMethods/index.json`, JSON.stringify(indexJSON), (err) => {
                         if (err) reject(err);
-                        console.log(chalk.white.bgGreen.bold(`./DB_Parser/proceduresMethods/index.json Saved!`));
-                        simpleGit.add(`./DB_Parser/proceduresMethods/index.json`);
+                        console.log(chalk.white.bgGreen.bold(`./proceduresMethods/index.json Saved!`));
+                        simpleGit.add(`./proceduresMethods/index.json`);
                         resolve();
                     });
                 })
@@ -76,7 +91,7 @@ const createFile = (file) => {
         return item !== jsFileName;
     });
     indexJSON.push(jsFileName);
-    promises.push(writeFile(name, './'+file));
+    promises.push(writeFile(name, file));
 }
 
 const deleteFile = (file) => {
@@ -91,13 +106,13 @@ const deleteFile = (file) => {
     promises.push(
         new Promise((resolve, reject) => {
             //Check if file exists
-            fs.access('./DB_Parser/proceduresMethods/' + jsFileName, fs.F_OK, (err) => {
+            fs.access('./proceduresMethods/' + jsFileName, fs.F_OK, (err) => {
                 if (err) {
                     console.log(chalk.black.bgRed(jsFileName + ' doesnt exists, ignoring ...'));
                     resolve();
                 }
                 else {
-                    fs.unlink('./DB_Parser/proceduresMethods/' + jsFileName, (err) => {
+                    fs.unlink('./proceduresMethods/' + jsFileName, (err) => {
                         if (err) reject(err);
                         console.log(chalk.black.bgRed(jsFileName + ' was deleted'));
                         resolve();
@@ -109,16 +124,18 @@ const deleteFile = (file) => {
 }
 
 const writeFile = (name, path) => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {  
+        console.log('NAME: ', name);
+        console.log('PATH:', path);
         fileNameIsEqualToProcedureName(name, path).then((isEqual) => {
             if(!isEqual){
                 reject('SQL FileName cannot be different from procedure name declared inside file, file with error: ' + name);
             }
             jsStrFile = generateJs(path).then(({ name, str }) => {
-                fs.writeFile(`./DB_Parser/proceduresMethods/${name}.js`, str, (err) => {
+                fs.writeFile(`./proceduresMethods/${name}.js`, str, (err) => {
                     if (err) reject(err);
-                    console.log(chalk.black.bgGreen(`./DB_Parser/proceduresMethods/${name}.js Saved!`));
-                    simpleGit.add(`./DB_Parser/proceduresMethods/${name}.js`);
+                    console.log(chalk.black.bgGreen(`./proceduresMethods/${name}.js Saved!`));
+                    simpleGit.add(`./proceduresMethods/${name}.js`);
                     resolve();
                 });
             });
@@ -129,12 +146,12 @@ const writeFile = (name, path) => {
 const fileNameIsEqualToProcedureName = (file, path) => {
     
     file = '../MySQL/Procedures/'+file;
-    console.log('path', path);
     return new Promise((resolve, reject) => {    
         fs.access(path, fs.F_OK, (err) => {
             if (err) {
                 console.log(chalk.black.bgRed(path + ' doesnt exists'));
                 reject(err);
+                return;
             }
             //get Procedure name
             fs.readFile(path, "utf-8", (err, data) => {

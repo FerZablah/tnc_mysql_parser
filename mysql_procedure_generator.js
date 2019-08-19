@@ -33,7 +33,7 @@ const generateJsProcedure = (path) => {
 const createJsFileStr = (params, name) => {
     let str = `let db;\n/**\n* ${name}\n* @summary Call to procedure ${name}\n`;
     params.forEach((param) => {
-        str += `* @param {${param.type}} ${param.param}\n`
+        str += `* @param {${param.type}} ${param.type === 'Moment' ? 'MomentObject_'+param.param : param.param}\n`
     });
     str += `* @return {Array} Returns array of results if procedure has a SELECT \n`
     str += `* @example\n*\n*\t${name}(`
@@ -45,11 +45,11 @@ const createJsFileStr = (params, name) => {
     str += `\nconst ${name} = async (`;
     let strParams = '';
     params.forEach((param) => {
-        strParams += `${param.param}, `;
+        strParams += `${param.type === 'Moment' ? 'MomentObject_'+param.param : param.param}, `;
     });
     strParams = strParams.substring(0, strParams.length - 2);
     str += strParams;
-    str += `) => {\n   if(!db) db = require("../../connector.js");\n   return (await db.queryProcedure('${name}',${strParams}));\n}`;
+    str += `) => {\n   if(!db) db = require("tnc_mysql_connector");\n   return (await db.queryProcedure('${name}',${strParams}));\n}`;
     str += `\nmodule.exports = {\n   ${name}\n}`;
     return {name, str};
 }
@@ -60,8 +60,8 @@ const getDataTypeExample = (type) => {
             return '1';
         case 'Boolean':
             return 'true';
-        case 'Date':
-            return 'new Date()';
+        case 'Moment':
+            return 'new Moment.utc()';
         case 'String':
             return `'stringExample'`;
         default:
@@ -72,7 +72,7 @@ const getDataTypeExample = (type) => {
 const mysqlDataTypeToJs = (str) => {
     if (str.includes('INT') || str.includes('DOUBLE') || str.includes('FLOAT') || str.includes('DECIMAL')) return 'Number';
     if (str.includes('BIT')) return 'Boolean';
-    if (str.includes('DATE')) return 'Date';
+    if (str.includes('DATE')) return 'Moment';
     if (str.includes('CHAR') || str.includes('TEXT') || str.includes('ENUM')) return 'String';
     else return '';
 }
