@@ -70,6 +70,7 @@ const getDataTypeExample = (type) => {
 }
 
 const mysqlDataTypeToJs = (str) => {
+    str = str.toUpperCase();
     if (str.includes('INT') || str.includes('DOUBLE') || str.includes('FLOAT') || str.includes('DECIMAL')) return 'Number';
     if (str.includes('BIT')) return 'Boolean';
     if (str.includes('DATE')) return 'Moment';
