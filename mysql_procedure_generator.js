@@ -12,6 +12,18 @@ const generateJsProcedure = (path) => {
             let params = data.substring(methodName.length);
             params = params.substring(0, params.indexOf('BEGIN')).trim();
             params = params.substring(1, params.length - 1).trim();
+            let insideParenthesis = false;
+            for(let i=1;i<=params.length;i++){
+                if(params.charAt(i) === '('){
+                    insideParenthesis = true;
+                }
+                else if(params.charAt(i) == ',' && insideParenthesis){
+                    params=params.substring(0, i) + params.slice(i + 1, params.length );
+                }
+                else if(params.charAt(i) === ')'){
+                    insideParenthesis = false;
+                }
+            }
             params = params.split(',');
     
             params.forEach((param, index) => {
@@ -30,6 +42,8 @@ const generateJsProcedure = (path) => {
         });
     });
 }
+
+
 const createJsFileStr = (params, name) => {
     let str = `let db;\n/**\n* ${name}\n* @summary Call to procedure ${name}\n`;
     params.forEach((param) => {

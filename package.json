@@ -1,6 +1,6 @@
 {
   "name": "tnc_mysql_parser",
-  "version": "1.1.6",
+  "version": "1.1.14",
   "description": "MySQL procedures parser to JS Methods",
   "main": "index.js",
   "scripts": {

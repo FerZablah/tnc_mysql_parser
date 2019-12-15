@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const generateJs = require('./mysql_procedure_generator');
-const simpleGit = require('simple-git/promise')();
 const chalk = require('chalk');
 const _ = require('lodash');
 const path = require('path');
 let appDir = path.dirname(require.main.filename);
-appDir = appDir.substring(0, appDir.lastIndexOf('Express'));
+let capsIndex = appDir.lastIndexOf('Express');
+let nocapsIndex = appDir.lastIndexOf('express');
+appDir = appDir.substring(0, capsIndex !== -1 ? capsIndex : nocapsIndex);
+const simpleGit = require('simple-git/promise')(appDir);
 let promises = [];
 let indexJSON;
 
@@ -61,15 +63,15 @@ async function main() {
         await Promise.all(promises);
         const noChanges = _.isEqual(_.sortBy(originalIndexJSON), _.sortBy(indexJSON));
         if(noChanges){
-            console.log(chalk.white.bgBlue.bold(`No changes made to ./proceduresMethods/index.json`));
+            console.log(chalk.white.bgBlue.bold(`No changes made to ${appDir}/Express/proceduresMethods/index.json`));
         }
         else{   
             await Promise.all([
                 new Promise((resolve, reject) => {
-                    fs.writeFile(`./proceduresMethods/index.json`, JSON.stringify(indexJSON), (err) => {
+                    fs.writeFile(`${appDir}/Express/proceduresMethods/index.json`, JSON.stringify(indexJSON), (err) => {
                         if (err) reject(err);
-                        console.log(chalk.white.bgGreen.bold(`./proceduresMethods/index.json Saved!`));
-                        simpleGit.add(`./proceduresMethods/index.json`);
+                        console.log(chalk.white.bgGreen.bold(`${appDir}/Express/proceduresMethods/index.json Saved!`));
+                        simpleGit.add(`${appDir}/Express/proceduresMethods/index.json`);
                         resolve();
                     });
                 })
@@ -106,13 +108,13 @@ const deleteFile = (file) => {
     promises.push(
         new Promise((resolve, reject) => {
             //Check if file exists
-            fs.access('./proceduresMethods/' + jsFileName, fs.F_OK, (err) => {
+            fs.access(`${appDir}/Express/proceduresMethods/` + jsFileName, fs.F_OK, (err) => {
                 if (err) {
                     console.log(chalk.black.bgRed(jsFileName + ' doesnt exists, ignoring ...'));
                     resolve();
                 }
                 else {
-                    fs.unlink('./proceduresMethods/' + jsFileName, (err) => {
+                    fs.unlink(`${appDir}/Express/proceduresMethods/` + jsFileName, (err) => {
                         if (err) reject(err);
                         console.log(chalk.black.bgRed(jsFileName + ' was deleted'));
                         resolve();
@@ -132,10 +134,10 @@ const writeFile = (name, path) => {
                 reject('SQL FileName cannot be different from procedure name declared inside file, file with error: ' + name);
             }
             jsStrFile = generateJs(path).then(({ name, str }) => {
-                fs.writeFile(`./proceduresMethods/${name}.js`, str, (err) => {
+                fs.writeFile(`${appDir}/Express/proceduresMethods/${name}.js`, str, (err) => {
                     if (err) reject(err);
-                    console.log(chalk.black.bgGreen(`./proceduresMethods/${name}.js Saved!`));
-                    simpleGit.add(`./proceduresMethods/${name}.js`);
+                    console.log(chalk.black.bgGreen(`${appDir}/Express/proceduresMethods/${name}.js Saved!`));
+                    simpleGit.add(`${appDir}/Express/proceduresMethods/${name}.js`);
                     resolve();
                 });
             });
