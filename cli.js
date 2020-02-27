@@ -5,9 +5,7 @@ const chalk = require('chalk');
 const _ = require('lodash');
 const path = require('path');
 let appDir = path.dirname(require.main.filename);
-let capsIndex = appDir.lastIndexOf('Express');
-let nocapsIndex = appDir.lastIndexOf('express');
-appDir = appDir.substring(0, capsIndex !== -1 ? capsIndex : nocapsIndex);
+appDir = appDir.substring(0, appDir.lastIndexOf('Express'));
 const simpleGit = require('simple-git/promise')(appDir);
 let promises = [];
 let indexJSON;
@@ -25,6 +23,11 @@ const isProcedureFile = (path) => {
 async function main() {
     try {
         console.log('Running git analyzer on', appDir);
+        const archivosSQL = fs.readdirSync(appDir+"MySQL/Procedures");
+        fs.writeFileSync(appDir+"MySQL/AllProcedures.sql", "", );
+        archivosSQL.forEach((archivoSQL) => {
+            fs.appendFileSync(appDir+"MySQL/AllProcedures.sql", fs.readFileSync(appDir+"MySQL/Procedures/"+archivoSQL, {encoding: "utf8"}) + "\n\n");
+        });
         promises = [];
         const originalIndexJSON = JSON.parse(fs.readFileSync(renamePath('Express/proceduresMethods/index.json')));
         indexJSON = _.cloneDeep(originalIndexJSON);
@@ -172,4 +175,5 @@ const fileNameIsEqualToProcedureName = (file, path) => {
 }
 
 main();
+
 exports.readGit = main;
